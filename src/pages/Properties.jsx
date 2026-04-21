@@ -1,22 +1,103 @@
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import PropertyModal from '../components/PropertyModal'
 import styles from './Properties.module.css'
-
-// ダミーの物件データ
-const DUMMY_PROPERTIES = [
-  { id: 1, name: 'グランドパレス渋谷', rent: 220000, area: '渋谷区', type: '1LDK', floor: '8F', size: 42 },
-  { id: 2, name: 'シティハウス新宿', rent: 185000, area: '新宿区', type: '1K', floor: '5F', size: 28 },
-  { id: 3, name: 'パークコート目黒', rent: 310000, area: '目黒区', type: '2LDK', floor: '12F', size: 65 },
-  { id: 4, name: 'ライオンズマンション池袋', rent: 145000, area: '豊島区', type: '1R', floor: '3F', size: 22 },
-  { id: 5, name: 'コスモポリス品川', rent: 280000, area: '品川区', type: '2LDK', floor: '10F', size: 58 },
-  { id: 6, name: 'プレミアタワー恵比寿', rent: 390000, area: '渋谷区', type: '3LDK', floor: '15F', size: 85 },
-  { id: 7, name: 'サニーコート吉祥寺', rent: 132000, area: '武蔵野市', type: '1K', floor: '2F', size: 26 },
-  { id: 8, name: 'メゾン自由が丘', rent: 168000, area: '目黒区', type: '1DK', floor: '4F', size: 35 },
-]
 
 export default function Properties() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+
+  const [properties, setProperties] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
+
+  // モーダルの表示制御: null=非表示, 'create'=新規, {物件オブジェクト}=編集
+  const [modalTarget, setModalTarget] = useState(null)
+
+  // 削除確認中の物件 ID
+  const [deletingId, setDeletingId] = useState(null)
+
+  // ----------------------
+  // SELECT: 自分の物件を取得
+  // ----------------------
+  const fetchProperties = useCallback(async () => {
+    setLoading(true)
+    setFetchError('')
+
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setFetchError('物件の取得に失敗しました')
+    } else {
+      setProperties(data)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchProperties()
+  }, [fetchProperties])
+
+  // ----------------------
+  // INSERT / UPDATE: モーダルから呼ばれる保存処理
+  // onSave はエラーメッセージ文字列を返す（成功時は null）
+  // ----------------------
+  const handleSave = async (formData) => {
+    const isEdit = modalTarget !== 'create'
+
+    if (isEdit) {
+      // UPDATE: 対象レコードを更新
+      const { error } = await supabase
+        .from('properties')
+        .update({
+          name: formData.name,
+          rent: formData.rent,
+          area: formData.area,
+          floor_plan: formData.floor_plan,
+        })
+        .eq('id', modalTarget.id)
+
+      if (error) return '更新に失敗しました'
+    } else {
+      // INSERT: user_id を付与して新規登録
+      const { error } = await supabase
+        .from('properties')
+        .insert({ ...formData, user_id: user.id })
+
+      if (error) return '登録に失敗しました'
+    }
+
+    // 成功したらモーダルを閉じてリストを再取得
+    setModalTarget(null)
+    await fetchProperties()
+    return null
+  }
+
+  // ----------------------
+  // DELETE: 物件を削除
+  // ----------------------
+  const handleDelete = async (id) => {
+    setDeletingId(id)
+
+    const { error } = await supabase
+      .from('properties')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      alert('削除に失敗しました')
+    } else {
+      // 削除成功時はローカルの配列からも除去（再フェッチ不要で即反映）
+      setProperties((prev) => prev.filter((p) => p.id !== id))
+    }
+
+    setDeletingId(null)
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -41,43 +122,95 @@ export default function Properties() {
       {/* メインコンテンツ */}
       <main className={styles.main}>
         <div className={styles.titleRow}>
-          <h2 className={styles.sectionTitle}>物件一覧</h2>
-          <span className={styles.count}>{DUMMY_PROPERTIES.length} 件</span>
+          <div className={styles.titleLeft}>
+            <h2 className={styles.sectionTitle}>物件一覧</h2>
+            {!loading && (
+              <span className={styles.count}>{properties.length} 件</span>
+            )}
+          </div>
+          <button
+            className={styles.addButton}
+            onClick={() => setModalTarget('create')}
+          >
+            ＋ 新規登録
+          </button>
         </div>
 
-        <div className={styles.grid}>
-          {DUMMY_PROPERTIES.map((property) => (
-            <div key={property.id} className={styles.card}>
-              {/* 物件タイプバッジ */}
-              <div className={styles.cardHeader}>
-                <span className={styles.badge}>{property.type}</span>
-                <span className={styles.floor}>{property.floor}</span>
-              </div>
+        {/* エラー表示 */}
+        {fetchError && <p className={styles.fetchError}>{fetchError}</p>}
 
-              <h3 className={styles.propertyName}>{property.name}</h3>
+        {/* ローディング */}
+        {loading && <p className={styles.loadingText}>読み込み中...</p>}
 
-              <div className={styles.details}>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>エリア</span>
-                  <span className={styles.detailValue}>{property.area}</span>
+        {/* 物件なし */}
+        {!loading && !fetchError && properties.length === 0 && (
+          <div className={styles.empty}>
+            <p>登録された物件はありません。</p>
+            <button
+              className={styles.addButton}
+              onClick={() => setModalTarget('create')}
+            >
+              最初の物件を登録する
+            </button>
+          </div>
+        )}
+
+        {/* 物件カード一覧 */}
+        {!loading && (
+          <div className={styles.grid}>
+            {properties.map((property) => (
+              <div key={property.id} className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <span className={styles.badge}>{property.floor_plan}</span>
                 </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>面積</span>
-                  <span className={styles.detailValue}>{property.size} m²</span>
+
+                <h3 className={styles.propertyName}>{property.name}</h3>
+
+                <div className={styles.details}>
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>エリア</span>
+                    <span className={styles.detailValue}>{property.area}</span>
+                  </div>
+                </div>
+
+                <div className={styles.rent}>
+                  <span className={styles.rentLabel}>家賃</span>
+                  <span className={styles.rentValue}>
+                    ¥{property.rent.toLocaleString()}
+                    <span className={styles.rentUnit}> / 月</span>
+                  </span>
+                </div>
+
+                {/* 編集・削除ボタン */}
+                <div className={styles.cardActions}>
+                  <button
+                    className={styles.editButton}
+                    onClick={() => setModalTarget(property)}
+                  >
+                    編集
+                  </button>
+                  <button
+                    className={styles.deleteButton}
+                    onClick={() => handleDelete(property.id)}
+                    disabled={deletingId === property.id}
+                  >
+                    {deletingId === property.id ? '削除中...' : '削除'}
+                  </button>
                 </div>
               </div>
-
-              <div className={styles.rent}>
-                <span className={styles.rentLabel}>家賃</span>
-                <span className={styles.rentValue}>
-                  ¥{property.rent.toLocaleString()}
-                  <span className={styles.rentUnit}> / 月</span>
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </main>
+
+      {/* 新規登録 / 編集モーダル */}
+      {modalTarget !== null && (
+        <PropertyModal
+          editTarget={modalTarget === 'create' ? null : modalTarget}
+          onSave={handleSave}
+          onClose={() => setModalTarget(null)}
+        />
+      )}
     </div>
   )
 }

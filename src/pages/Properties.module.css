@@ -61,9 +61,15 @@
 
 .titleRow {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.titleLeft {
+  display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 24px;
 }
 
 .sectionTitle {
@@ -76,6 +82,52 @@
 .count {
   font-size: 0.9rem;
   color: #718096;
+}
+
+/* 新規登録ボタン */
+.addButton {
+  padding: 10px 20px;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.addButton:hover {
+  background-color: #2b6cb0;
+}
+
+/* フェッチエラー */
+.fetchError {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #c53030;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* ローディング */
+.loadingText {
+  color: #718096;
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* 物件なし */
+.empty {
+  text-align: center;
+  padding: 60px 0;
+  color: #718096;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 /* 物件カードグリッド */
@@ -114,11 +166,6 @@
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 20px;
-}
-
-.floor {
-  font-size: 0.8rem;
-  color: #a0aec0;
 }
 
 .propertyName {
@@ -161,7 +208,6 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-top: auto;
 }
 
 .rentLabel {
@@ -179,4 +225,52 @@
   font-size: 0.75rem;
   font-weight: 400;
   color: #a0aec0;
+}
+
+/* カード内の編集・削除ボタン */
+.cardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #edf2f7;
+}
+
+.editButton {
+  flex: 1;
+  padding: 7px 0;
+  background-color: #edf2f7;
+  color: #4a5568;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.editButton:hover {
+  background-color: #e2e8f0;
+}
+
+.deleteButton {
+  flex: 1;
+  padding: 7px 0;
+  background-color: #fff5f5;
+  color: #e53e3e;
+  border: 1px solid #fed7d7;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background-color: #fee2e2;
+}
+
+.deleteButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
