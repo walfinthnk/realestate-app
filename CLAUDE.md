@@ -4,58 +4,67 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a real estate application. Update this section as the project takes shape with details about the tech stack, purpose, and key features.
+React + Vite + Supabase で構築した不動産管理 Web アプリ。メールアドレス＋パスワード認証を備え、ログイン後に物件一覧を表示する。
 
 ## Git Operations
 
-**Every code change must be committed and pushed to GitHub.**
-
-After any modification to source files:
+**コードを変更するたびに GitHub にプッシュすること。**
 
 ```bash
-git add <changed-files>
-git commit -m "brief description of change"
+git add <変更したファイル>
+git commit -m "変更の概要（命令形）"
 git push origin main
 ```
 
-- Stage specific files, not `git add .` or `git add -A`, to avoid accidentally committing sensitive files.
-- Write commit messages in the imperative mood (e.g. "add property listing page", "fix search filter bug").
-- Never force-push to `main`/`master`.
-- Never skip hooks with `--no-verify`.
+- `git add .` / `git add -A` は使用しない（機密ファイルの誤コミット防止）
+- コミットメッセージは命令形で書く（例: "add property listing page"）
+- `main` へのforce-push 禁止
+- `--no-verify` によるフック回避禁止
 
 ## Development Commands
 
-> Update this section once the tech stack is decided (e.g. Next.js, React, Django, etc.).
-
-Typical placeholders — replace with actual commands:
-
 ```bash
-# Install dependencies
-npm install          # or: pip install -r requirements.txt
+# 依存パッケージのインストール
+npm install
 
-# Start dev server
-npm run dev          # or: python manage.py runserver
+# 開発サーバー起動（http://localhost:5173）
+npm run dev
 
-# Run all tests
-npm test             # or: pytest
-
-# Run a single test file
-npm test -- path/to/test.spec.ts   # or: pytest path/to/test.py
-
-# Lint
-npm run lint         # or: flake8 .
-
-# Build for production
+# 本番ビルド
 npm run build
+
+# リント
+npm run lint
 ```
+
+## Environment Variables
+
+`.env` ファイルに以下を設定（`.gitignore` 済みのため Git 管理外）:
+
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+Vite では `import.meta.env.VITE_*` でアクセスする。
 
 ## Architecture
 
-> Fill in this section as the project structure is established.
+### 認証フロー
 
-Key areas to document here:
-- **Data models** — Property, Listing, User, etc.
-- **API layer** — how the frontend talks to the backend (REST, GraphQL, etc.)
-- **Authentication** — session, JWT, OAuth, etc.
-- **Search / filtering** — how property searches are handled
-- **Media handling** — property photos upload and storage
+- `src/lib/supabase.js` — Supabase クライアントの初期化（環境変数から接続情報を読み込む）
+- `src/contexts/AuthContext.jsx` — `AuthProvider` と `useAuth` フックを提供。`onAuthStateChange` でセッションを監視し、`user` / `loading` / `signIn` / `signUp` / `signOut` をコンテキストで共有する
+- `src/components/ProtectedRoute.jsx` — `user` が null のとき `/login` へリダイレクト。`loading` 中は何も描画しない（チラつき防止）
+
+### 画面構成
+
+| パス | コンポーネント | 説明 |
+|------|--------------|------|
+| `/` | — | `/login` へリダイレクト |
+| `/login` | `Login.jsx` | メール・パスワードでログイン |
+| `/register` | `Register.jsx` | 新規会員登録 |
+| `/properties` | `Properties.jsx` | 物件一覧（要認証） |
+
+### スタイリング
+
+CSS Modules（`*.module.css`）を採用。`Auth.module.css` がログイン・登録画面の共通スタイルを担当。
