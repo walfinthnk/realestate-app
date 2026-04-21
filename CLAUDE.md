@@ -68,3 +68,8 @@ Vite では `import.meta.env.VITE_*` でアクセスする。
 ### スタイリング
 
 CSS Modules（`*.module.css`）を採用。`Auth.module.css` がログイン・登録画面の共通スタイルを担当。
+
+## デプロイ情報
+
+- 本番URL：https://realestate-app-indol.vercel.app/
+- Supabaseプロジェクト名：realestate-app
